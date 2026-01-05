@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits, Events } = require("discord.js");
+const http = require('http'); // បន្ថែមសម្រាប់ Render
 require("dotenv").config();
 
 // ============ CONFIG ============
@@ -10,6 +11,19 @@ const MODEL_NAME = "llama-3.3-70b-versatile";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 // ================================
 
+// 1. បង្កើត Web Server ក្លែងក្លាយ (សំខាន់សម្រាប់ Render)
+const port = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Discord Bot is Running on Render!');
+});
+
+server.listen(port, () => {
+    console.log(`🌐 Server is keeping bot alive at port ${port}`);
+});
+
+// 2. ការកំណត់ Discord Bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -34,7 +48,6 @@ async function queryGroq(prompt) {
       body: JSON.stringify({
         model: MODEL_NAME,
         messages: [
-            // System prompt កំណត់អត្តចរិតឱ្យ Bot
             { role: "system", content: "You are a helpful AI assistant on Discord." },
             { role: "user", content: prompt }
         ],
@@ -49,7 +62,7 @@ async function queryGroq(prompt) {
     }
     
     const result = await response.json();
-    return result; // Groq return ជា format ដូច OpenAI
+    return result; 
   } catch (error) {
     console.error("Fetch Error:", error);
     return { error: "Connection Failed" };
@@ -70,7 +83,6 @@ client.on(Events.MessageCreate, async (message) => {
        return message.reply(`⚠️ ${result.error}`);
     }
 
-    // ទាញយកចម្លើយពី Groq Structure
     let reply = result.choices?.[0]?.message?.content;
 
     if (!reply) {
